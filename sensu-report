@@ -11,11 +11,18 @@ CLEAR  = '\033[0m'
 
 def make_parse():
     from optparse import OptionParser
+    import os
     parser = OptionParser()
     parser.add_option("-s", "--server", dest="server",
                       help="sensu api server hostname")
+    try:
+        max_line_default = os.popen('stty size', 'r').read().split()[1]
+    except:
+        max_line_default = 80
+    parser.add_option("-l", "--length", dest="max_line_length", default=max_line_default,
+                      help="longest line length for the output acceptable. Defaults to your terminal width")
     parser.add_option("-p", "--port", dest="port",
-                      help="sensu server api port", default='4567')
+                      help="sensu server api port", default=4567)
     parser.add_option("-c", "--client", dest="client", default=False,
                       help="hostname of the client to get the report on. Defaults to the local fqdn.")
     return parser
@@ -24,7 +31,7 @@ def fetch_sensu_data(server, port, client):
     """ Connects to the Sensu API over a given host and port, and returns
     dictionary based on the retrieved json data. """
     import urllib2, json
-    response = urllib2.urlopen('http://' + server + ':' + port + '/events/' + client)
+    response = urllib2.urlopen('http://' + server + ':' + str(port) + '/events/' + client)
     data = json.load(response)
     return data
 
@@ -71,30 +78,34 @@ def pretty_date(time=False):
         return str(day_diff/30) + " months ago"
     return str(day_diff/365) + " years ago"
 
-def sanitize_sensu_output(line):
+def sanitize_sensu_output(line, length):
     """The output of sensu plugins are unpredictable. They could have newlines,
     ANSI color codes, html, etc. This function returns a stripped string. It
     also will limit the output of the string to prevent console overflow."""
     import re
-    line = line.replace("\n","")
+    line = line.replace("\n"," ")
     ansi_escape = re.compile(r'\x1b[^m]*m')
     line = ansi_escape.sub('', line)
-    if len(line) > 60:
-        line = line[:57] + "..."
+    if len(line) > length:
+        line = line[:length-3] + "..."
     return line
 
-def print_line(entry):
+def print_line(entry, max_line_length):
     """Formats a colored line based on the provided sensu entry dictionary"""
     import sys,datetime
+    MaxLineLength = 80
     entry_date = pretty_date(entry['issued'])
-    if   entry['status'] == 2: color = RED; severity = "Critical: "
-    elif entry['status'] == 1: color = YELLOW; severity = "Warning:  "
-    else: color = GREY; severity = "Unknown:  "
-    stripped_output = sanitize_sensu_output(entry['output'])
-    sys.stdout.write("   " + color + severity + "(" + entry_date + ")" + " "  + entry['check'] + ': ' + CLEAR + stripped_output )
+    if   entry['status'] == 2: color = RED; severity = "Crit: "
+    elif entry['status'] == 1: color = YELLOW; severity = "Warn: "
+    else: color = GREY; severity = "Unkn: "
+    line = " " + color + severity + "(" + entry_date + ")" + " "  + entry['check'] + ': ' + CLEAR 
+    # We add 7 because the line length is artificially long because of the colors
+    # And we want a margin on the right hand side. TODO: fix
+    stripped_output = sanitize_sensu_output(entry['output'], max_line_length-len(line) + 7)
+    sys.stdout.write( line+ stripped_output )
     print
 
-def print_report(data):
+def print_report(data, max_line_length):
     """Prints a human readable report based on the sensu data"""
     import sys
     print
@@ -102,24 +113,30 @@ def print_report(data):
       print "Failed Sensu checks on this host:"
       # Criticals
       for entry in sorted([ x for x in data if x['status'] == 2 ]):
-          print_line(entry)
+          print_line(entry, max_line_length)
       # Warning
       for entry in sorted([ x for x in data if x['status'] == 1 ]):
-          print_line(entry)
+          print_line(entry, max_line_length)
       # Unknown
       for entry in sorted([ x for x in data if x['status'] != 2 and x['status'] != 1 ]):
-          print_line(entry)
+          print_line(entry, max_line_length)
     else:
       print "All Sensu checks " + GREEN + "green " + CLEAR + "for this host."
     print
 
 def main():
-    import socket
+    import socket,sys
     parser = make_parse()   
     (options, args) = parser.parse_args()
-    if not options.client: options.client = socket.getfqdn()
+    options.max_line_length = int(options.max_line_length)
+    if not options.client:
+        options.client = socket.getfqdn()
+    if not options.server:
+        print "Error: No sensu server provided."
+        parser.print_help()
+        sys.exit(1) 
     data = fetch_sensu_data(options.server, options.port, options.client)
-    print_report(data)
+    print_report(data, options.max_line_length)
 
 if __name__ == '__main__':
     main()
