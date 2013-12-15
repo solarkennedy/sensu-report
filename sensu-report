@@ -2,6 +2,11 @@
 """
 SYNOPSIS
 
+  Prints a human readable output of the failing Sensu checks into your terminal.
+  Queries the Sensu API and formats it into pretty colors. Basically a text 
+  based report of the sensu dashboard, on a particular client. (by default,
+  the local hostmame)
+
 """
 RED    = '\033[91m'
 YELLOW = '\033[93m'
@@ -40,13 +45,11 @@ def test_pretty_date():
     is pretty """
     import datetime
     fakenow = 1387148113
-    fake = fudge.Fake('now', callable=True).returns(fakenow)
-    patched = fudge.patch_object(datetime.datetime, 'now', fake)
-    try:
-        eq_(datetime.datetime.now(), now)
-    finally:
-        patched.restore()
-    eq_(datetime.datetime.now, orig_datetime.now)
+    # TODO:....
+    assert pretty_date(1387148113) == "Just now"
+
+def test_test():
+    pass
 
 def pretty_date(time=False):
     """
