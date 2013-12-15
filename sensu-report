@@ -35,9 +35,6 @@ def fetch_sensu_data(server, port, client):
     data = json.load(response)
     return data
 
-def test_test():
-    assert False
-
 def test_pretty_date():
     """ Lets put in some epochs we expect from sensu and make sure it 
     is pretty """
