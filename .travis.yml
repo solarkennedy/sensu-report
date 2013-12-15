@@ -2,5 +2,5 @@ language: python
 python:
   - "2.6"
   - "2.7"
-install: scriptloader
+install: pip install scriptloader
 script: nosetests --with-scriptloader sensu-report
