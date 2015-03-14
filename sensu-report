@@ -39,7 +39,7 @@ def make_parse():
                       help="Password to use for api basic auth. Defaults to false.")
     return parser
 
-def fetch_sensu_events(server, port, client, username, password):
+def fetch_sensu_data(server, port, client, username, password):
     """ Connects to the Sensu API over a given host and port, and returns
     dictionary based on the retrieved json data. """
     import urllib2
@@ -109,7 +109,7 @@ def pretty_date(time=False):
         diff = now - datetime.fromtimestamp(time)
     elif isinstance(time,datetime):
         diff = now - time 
-    else:
+    elif not time:
         diff = now - now
     second_diff = diff.seconds
     day_diff = diff.days
@@ -157,13 +157,13 @@ def print_line(entry, max_line_length):
     import sys,datetime
     MaxLineLength = 80
     #entry_date = pretty_date(entry['issued'])
-    if   entry['status'] == 2: color = RED; severity = "Crit: "
-    elif entry['status'] == 1: color = YELLOW; severity = "Warn: "
+    if   entry['check']['status'] == 2: color = RED; severity = "Crit: "
+    elif entry['event']['status'] == 1: color = YELLOW; severity = "Warn: "
     else: color = GREY; severity = "Unkn: "
-    line = " " + color + severity + " "  + entry['check'] + ': ' + CLEAR 
+    line = " " + color + severity + " "  + entry['check']['name'] + ': ' + CLEAR 
     # We add 7 because the line length is artificially long because of the colors
     # And we want a margin on the right hand side. TODO: fix
-    stripped_output = sanitize_sensu_output(entry['output'], max_line_length-len(line) + 7)
+    stripped_output = sanitize_sensu_output(entry['check']['output'], max_line_length-len(line) + 7)
     sys.stdout.write( line+ stripped_output )
     print
 
@@ -174,13 +174,13 @@ def print_report(data, max_line_length):
     if len(data) > 0:
       print "Don't Panic! Ops already knows! Failed Sensu checks on this host:"
       # Criticals
-      for entry in sorted([ x for x in data if x['status'] == 2 ]):
+      for entry in sorted([ x for x in data if x['check']['status'] == 2 ]):
           print_line(entry, max_line_length)
       # Warning
-      for entry in sorted([ x for x in data if x['status'] == 1 ]):
+      for entry in sorted([ x for x in data if x['check']['status'] == 1 ]):
           print_line(entry, max_line_length)
       # Unknown
-      for entry in sorted([ x for x in data if x['status'] != 2 and x['status'] != 1 ]):
+      for entry in sorted([ x for x in data if x['check']['status'] != 2 and x['check']['status'] != 1 ]):
           print_line(entry, max_line_length)
     else:
       print "All Sensu checks " + GREEN + "green " + CLEAR + "for this host."
@@ -213,4 +213,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
