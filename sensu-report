@@ -11,7 +11,6 @@ SYNOPSIS
 
 from datetime import datetime
 from optparse import OptionParser
-import os
 import re
 import socket
 import sys
@@ -57,15 +56,16 @@ def fetch_sensu_data(server, port, client, username, password):
     try:
         if username:
             auth_handler = urllib2.HTTPBasicAuthHandler()
-            auth_handler.add_password(realm='',
-                                      uri='http://' + server + ':' + str(port) + '/',
-                                      user=username,
-                                      passwd=password)
+            auth_handler.add_password(
+                realm='',
+                uri='http://' + server + ':' + str(port) + '/',
+                user=username,
+                passwd=password)
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
         response = urllib2.urlopen(api_url)
     except:
-        print "Fetching the Sensu API url didn't work:" 
+        print "Fetching the Sensu API url didn't work:"
         print api_url
         raise
     data = json.load(response)
@@ -78,10 +78,11 @@ def fetch_silence_data(server, port, client, username, password):
     try:
         if username:
             auth_handler = urllib2.HTTPBasicAuthHandler()
-            auth_handler.add_password(realm='',
-                                      uri='http://' + server + ':' + str(port) + '/',
-                                      user=username,
-                                      passwd=password)
+            auth_handler.add_password(
+                realm='',
+                uri='http://' + server + ':' + str(port) + '/',
+                user=username,
+                passwd=password)
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
         response = urllib2.urlopen(stash_url)
@@ -99,7 +100,7 @@ def test_pretty_date():
     """ Lets put in some epochs we expect from sensu and make sure it 
     is pretty """
     fakenow = int(time.time()-5)
-    assert pretty_date(faketime) == "Just now"
+    assert pretty_date(fakenow) == "Just now"
 
 
 def pretty_date(time=False):
@@ -111,9 +112,11 @@ def pretty_date(time=False):
     now = datetime.now()
     if type(time) is int:
         diff = now - datetime.fromtimestamp(time)
-    elif isinstance(time,datetime):
-        diff = now - time 
+    elif isinstance(time, datetime):
+        diff = now - time
     elif not time:
+        diff = now - now
+    else:
         diff = now - now
     second_diff = diff.seconds
     day_diff = diff.days
@@ -127,13 +130,13 @@ def pretty_date(time=False):
         if second_diff < 60:
             return str(second_diff) + " seconds ago"
         if second_diff < 120:
-            return  "a minute ago"
+            return "a minute ago"
         if second_diff < 3600:
-            return str( second_diff / 60 ) + " minutes ago"
+            return str(second_diff / 60) + " minutes ago"
         if second_diff < 7200:
             return "an hour ago"
         if second_diff < 86400:
-            return str( second_diff / 3600 ) + " hours ago"
+            return str(second_diff / 3600) + " hours ago"
     if day_diff == 1:
         return "Yesterday"
     if day_diff < 7:
@@ -148,44 +151,45 @@ def sanitize_sensu_output(line, length):
     """The output of sensu plugins are unpredictable. They could have newlines,
     ANSI color codes, html, etc. This function returns a stripped string. It
     also will limit the output of the string to prevent console overflow."""
-    line = line.replace("\n"," ")
+    line = line.replace("\n", " ")
     ansi_escape = re.compile(r'\x1b[^m]*m')
     line = ansi_escape.sub('', line)
     if len(line) > length:
         line = line[:length-3] + "..."
     return line
 
+
 def print_line(entry, max_line_length):
     """Formats a colored line based on the provided sensu entry dictionary"""
-    MaxLineLength = 80
-    #entry_date = pretty_date(entry['issued'])
-    if   entry['check']['status'] == 2: color = RED; severity = "Crit: "
+    if entry['check']['status'] == 2: color = RED; severity = "Crit: "
     elif entry['event']['status'] == 1: color = YELLOW; severity = "Warn: "
     else: color = GREY; severity = "Unkn: "
     line = " " + color + severity + " "  + entry['check']['name'] + ': ' + CLEAR 
     # We add 7 because the line length is artificially long because of the colors
     # And we want a margin on the right hand side. TODO: fix
     stripped_output = sanitize_sensu_output(entry['check']['output'], max_line_length-len(line) + 7)
-    sys.stdout.write( line+ stripped_output )
+    sys.stdout.write(line + stripped_output)
     print
+
 
 def print_report(data, max_line_length):
     """Prints a human readable report based on the sensu data"""
     print
     if len(data) > 0:
-      print "Don't Panic! Ops already knows! Failed Sensu checks on this host:"
-      # Criticals
-      for entry in sorted([ x for x in data if x['check']['status'] == 2 ]):
-          print_line(entry, max_line_length)
-      # Warning
-      for entry in sorted([ x for x in data if x['check']['status'] == 1 ]):
-          print_line(entry, max_line_length)
-      # Unknown
-      for entry in sorted([ x for x in data if x['check']['status'] != 2 and x['check']['status'] != 1 ]):
-          print_line(entry, max_line_length)
+        print "Don't Panic! Ops already knows! Failed Sensu checks on this host:"
+        # Criticals
+        for entry in sorted([ x for x in data if x['check']['status'] == 2 ]):
+            print_line(entry, max_line_length)
+        # Warning
+        for entry in sorted([ x for x in data if x['check']['status'] == 1 ]):
+            print_line(entry, max_line_length)
+        # Unknown
+        for entry in sorted([ x for x in data if x['check']['status'] != 2 and x['check']['status'] != 1 ]):
+            print_line(entry, max_line_length)
     else:
-      print "All Sensu checks " + GREEN + "green " + CLEAR + "for this host."
+        print "All Sensu checks " + GREEN + "green " + CLEAR + "for this host."
     print
+
 
 def print_silence_report(silence_data, max_line_length):
     if silence_data != {}:
@@ -196,8 +200,9 @@ def print_silence_report(silence_data, max_line_length):
         if 'reason' in silence_data:
             print "Reason: " + PURPLE + silence_data['reason'] + CLEAR
 
+
 def main():
-    parser = make_parse()   
+    parser = make_parse() 
     (options, args) = parser.parse_args()
     options.max_line_length = int(options.max_line_length)
     if not options.client:
@@ -205,11 +210,12 @@ def main():
     if not options.server:
         print "Error: No sensu server provided."
         parser.print_help()
-        sys.exit(1) 
+        sys.exit(1)
     silence_data = fetch_silence_data(options.server, options.port, options.client, options.user, options.password)
     print_silence_report(silence_data, options.max_line_length)
-    events = fetch_sensu_events(options.server, options.port, options.client, options.user, options.password)
+    events = fetch_sensu_data(options.server, options.port, options.client, options.user, options.password)
     print_report(events, options.max_line_length)
+
 
 if __name__ == '__main__':
     main()
