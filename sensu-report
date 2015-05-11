@@ -55,15 +55,17 @@ def make_parse():
 def fetch_sensu_data(server, port, client, username, password):
     """ Connects to the Sensu API over a given host and port, and returns
     dictionary based on the retrieved json data. """
-    api_url = 'http://' + server + ':' + str(port) + '/events/' + client
+    base_url = 'http://' + server + ':' + str(port)
+    api_url = base_url + '/events/' + client
     try:
         if username:
-            auth_handler = urllib2.HTTPBasicAuthHandler()
-            auth_handler.add_password(
-                realm='',
-                uri='http://' + server + ':' + str(port) + '/',
+            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+            password_mgr.add_password(
+                realm=None,
+                uri=base_url,
                 user=username,
                 passwd=password)
+            auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
             opener = urllib2.build_opener(auth_handler)
             urllib2.install_opener(opener)
         response = urllib2.urlopen(api_url)
