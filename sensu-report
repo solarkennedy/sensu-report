@@ -168,7 +168,7 @@ def print_line(entry, max_line_length):
     if entry['check']['status'] == 2:
         color = RED
         severity = "Crit: "
-    elif entry['event']['status'] == 1:
+    elif entry['check']['status'] == 1:
         color = YELLOW
         severity = "Warn: "
     else:
