@@ -168,7 +168,7 @@ def print_line(entry, max_line_length):
     if entry['check']['status'] == 2:
         color = RED
         severity = "Crit: "
-    elif entry['event']['status'] == 1:
+    elif entry['check']['status'] == 1:
         color = YELLOW
         severity = "Warn: "
     else:
@@ -212,7 +212,7 @@ def print_silence_report(silence_data, max_line_length):
 
 
 def main():
-    parser = make_parse() 
+    parser = make_parse()
     (options, args) = parser.parse_args()
     options.max_line_length = int(options.max_line_length)
     if not options.client:
