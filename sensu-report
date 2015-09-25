@@ -5,14 +5,12 @@ terminal.  Queries the Sensu API and formats it into pretty colors. Basically
 a text based report of the sensu dashboard, on a particular client. (by
 default, the local hostmame)
 """
-
 from datetime import datetime
 from optparse import OptionParser
 import re
 import socket
 import sys
 import urllib2
-
 
 try:
     import json
