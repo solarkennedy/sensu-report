@@ -11,7 +11,6 @@ from optparse import OptionParser
 import re
 import socket
 import sys
-import time
 import urllib2
 
 
@@ -104,13 +103,6 @@ def fetch_silence_data(server, port, client, username, password):
         raise
     data = json.load(response)
     return data
-
-
-def test_pretty_date():
-    """ Lets put in some epochs we expect from sensu and make sure it is pretty
-    """
-    fakenow = int(time.time()-5)
-    assert pretty_date(fakenow) == "Just now"
 
 
 def pretty_date(time=False):
