@@ -11,6 +11,7 @@ import re
 import socket
 import sys
 import urllib2
+import base64
 
 try:
     import json
@@ -55,17 +56,9 @@ def fetch_sensu_data(server, port, client, username, password):
     base_url = 'http://' + server + ':' + str(port)
     api_url = base_url + '/events/' + client
     try:
-        if username:
-            password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-            password_mgr.add_password(
-                realm=None,
-                uri=base_url,
-                user=username,
-                passwd=password)
-            auth_handler = urllib2.HTTPBasicAuthHandler(password_mgr)
-            opener = urllib2.build_opener(auth_handler)
-            urllib2.install_opener(opener)
         request = urllib2.Request(api_url)
+        if username:
+            request.add_header('Authorization', http_auth(username, password))
         request.add_header('User-Agent', 'sensu-report')
         response = urllib2.urlopen(request)
     except:
@@ -81,16 +74,9 @@ def fetch_silence_data(server, port, client, username, password):
     dictionary based on the retrieved json for the stash. """
     stash_url = 'http://' + server + ':' + str(port) + '/stashes/silence/' + client
     try:
-        if username:
-            auth_handler = urllib2.HTTPBasicAuthHandler()
-            auth_handler.add_password(
-                realm='',
-                uri='http://' + server + ':' + str(port) + '/',
-                user=username,
-                passwd=password)
-            opener = urllib2.build_opener(auth_handler)
-            urllib2.install_opener(opener)
         request = urllib2.Request(stash_url)
+        if username:
+            request.add_header('Authorization', http_auth(username, password))
         request.add_header('User-Agent', 'sensu-report')
         response = urllib2.urlopen(request)
     except urllib2.HTTPError:
@@ -101,6 +87,14 @@ def fetch_silence_data(server, port, client, username, password):
         raise
     data = json.load(response)
     return data
+
+
+# standard libs always send unauthenicated request and if server responds 401
+# with WWW-Authenitcate header, they then send authenicated request;
+# here we remove this inefficiency by injecting Authorization header ourselves
+def http_auth(username, password):
+    return 'Basic ' + \
+           base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
 
 
 def pretty_date(time=False):
